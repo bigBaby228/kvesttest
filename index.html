@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Последний рейс</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+(function(){ var ua=navigator.userAgent||''; var q=location.search;
+  var lite=/Android/i.test(ua)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||/lite=1/.test(q);
+  if(/lite=0/.test(q)) lite=false; if(lite) document.documentElement.classList.add('lite'); })();
+</script>
 <style>
 :root{--amber:#ffbf6b;--amber2:#f0a24a;--ink:#2a2118;--paper:#e7dcc4;--txt:#ece7de;--muted:#9aa6b6;--glass:rgba(12,16,26,.62);--line:rgba(255,255,255,.12)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -174,6 +179,16 @@ table.j td,table.j th{border-bottom:1px solid #b5a37b;padding:5px 2px;text-align
 #doc .paper.wood{background:radial-gradient(circle at 14px 14px,#c9a85a 0 3px,transparent 4px),radial-gradient(circle at calc(100% - 14px) 14px,#c9a85a 0 3px,transparent 4px),radial-gradient(circle at 14px calc(100% - 14px),#c9a85a 0 3px,transparent 4px),radial-gradient(circle at calc(100% - 14px) calc(100% - 14px),#c9a85a 0 3px,transparent 4px),repeating-linear-gradient(0deg,#00000000 0 26px,#00000055 26px 28px),repeating-linear-gradient(90deg,#ffffff06 0 3px,#00000008 3px 9px),linear-gradient(170deg,#6a4a30,#4a3220 60%,#3a2616);color:#f0d9aa;border:7px solid #2a1a0e;border-radius:8px;box-shadow:0 30px 60px #000,inset 0 0 40px #000a;transform:rotate(.6deg);font:17px/1.75 Georgia,serif;letter-spacing:.02em;text-shadow:0 -1px 0 #000c,0 1px 0 #ffffff1a}
 #doc .paper.wood h3{color:#f6dfae;letter-spacing:.3em;text-shadow:0 -1px 0 #000c,0 1px 0 #ffffff22}
 #doc .paper.wood b{color:#ffcfa0}
+
+/* облегчённый режим для Android и слабых устройств */
+.lite .cam,.lite .fog,.lite .shim,.lite .pulse,.lite .drop,.lite .smoke{animation:none!important}
+.lite .flk{animation-duration:9s!important}
+.lite #stage *{mix-blend-mode:normal!important}
+.lite #stage.dim{filter:brightness(.45)}
+.lite #grain{display:none}
+.lite .glass,.lite .btn,.lite #doc,.lite #phone,.lite #mg{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.lite .glass{background:rgba(10,13,20,.94)}
+.lite #stage svg{shape-rendering:optimizeSpeed}
 </style>
 </head>
 <body>
@@ -350,10 +365,12 @@ const VOICE={buf:null,src:null,loading:false,
 };
 /* ===================== RAIN + GRAIN ===================== */
 const RN={cv:$('#rain'),ctx:null,drops:[],level:0,raf:null};
-function sizeCanvas(cv){ const r=$('#app').getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1); cv.width=r.width*dpr; cv.height=r.height*dpr; cv.style.width=r.width+'px'; cv.style.height=r.height+'px'; return dpr; }
+const LITE=document.documentElement.classList.contains('lite');
+function sizeCanvas(cv){ const r=$('#app').getBoundingClientRect(),dpr=LITE?1:Math.min(2,window.devicePixelRatio||1); cv.width=r.width*dpr; cv.height=r.height*dpr; cv.style.width=r.width+'px'; cv.style.height=r.height+'px'; return dpr; }
 function rainInit(){
   const dpr=sizeCanvas(RN.cv); RN.ctx=RN.cv.getContext('2d'); RN.dpr=dpr;
-  RN.drops=Array.from({length:140},()=>({x:Math.random(),y:Math.random(),l:rnd(10,24),v:rnd(.9,1.6),a:rnd(.08,.28)}));
+  RN.drops=Array.from({length:LITE?70:140},()=>({x:Math.random(),y:Math.random(),l:rnd(10,24),v:rnd(.9,1.6),a:rnd(.08,.28)}));
+  if(LITE){ if(!RN.raf) rainLoop(); return; }
   const g=$('#grain'); sizeCanvas(g); const gc=g.getContext('2d'),img=gc.createImageData(g.width,g.height);
   for(let i=0;i<img.data.length;i+=4){ const v=Math.random()*255; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255; } gc.putImageData(img,0,0);
   if(!RN.raf) rainLoop();
