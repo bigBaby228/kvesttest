@@ -6,9 +6,7 @@
 <title>Последний рейс</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-(function(){ var ua=navigator.userAgent||''; var q=location.search;
-  var lite=/Android/i.test(ua)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=4)||/lite=1/.test(q);
-  if(/lite=0/.test(q)) lite=false; if(lite) document.documentElement.classList.add('lite'); })();
+(function(){ if(/lite=1/.test(location.search)) document.documentElement.classList.add('lite'); })();
 </script>
 <style>
 :root{--amber:#ffbf6b;--amber2:#f0a24a;--ink:#2a2118;--paper:#e7dcc4;--txt:#ece7de;--muted:#9aa6b6;--glass:rgba(12,16,26,.62);--line:rgba(255,255,255,.12)}
@@ -365,7 +363,7 @@ const VOICE={buf:null,src:null,loading:false,
 };
 /* ===================== RAIN + GRAIN ===================== */
 const RN={cv:$('#rain'),ctx:null,drops:[],level:0,raf:null};
-const LITE=document.documentElement.classList.contains('lite');
+let LITE=document.documentElement.classList.contains('lite');
 function sizeCanvas(cv){ const r=$('#app').getBoundingClientRect(),dpr=LITE?1:Math.min(2,window.devicePixelRatio||1); cv.width=r.width*dpr; cv.height=r.height*dpr; cv.style.width=r.width+'px'; cv.style.height=r.height+'px'; return dpr; }
 function rainInit(){
   const dpr=sizeCanvas(RN.cv); RN.ctx=RN.cv.getContext('2d'); RN.dpr=dpr;
@@ -1341,6 +1339,11 @@ $('#mGear').onclick=()=>{ A.click(); openGears(); };
 $('#mRestart').onclick=()=>{ $('#menu').style.display='none'; A.stopAmbient(); S.scene='title'; render(); $('#stage').classList.remove('dim'); $('#title').style.display='flex'; };
 try{ const tg=window.Telegram&&Telegram.WebApp; if(tg){ tg.ready(); tg.expand(); tg.setHeaderColor&&tg.setHeaderColor('#05070c'); tg.setBackgroundColor&&tg.setBackgroundColor('#05070c'); tg.disableVerticalSwipes&&tg.disableVerticalSwipes(); } }catch(e){}
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&A.ctx&&A.ctx.state!=='running') A.ctx.resume(); });
+function setLite(){ if(LITE) return; LITE=true; document.documentElement.classList.add('lite'); RN.drops=RN.drops.slice(0,70); sizeCanvas(RN.cv); RN.dpr=1; }
+(function fpsWatch(){ if(LITE||/lite=0/.test(location.search)) return; let checks=0;
+  const sample=()=>{ let n=0; const t0=performance.now(); const f=()=>{ n++; if(performance.now()-t0<2000) requestAnimationFrame(f); else { const fps=n/((performance.now()-t0)/1000);
+      if(fps<42) setLite(); else if(++checks<6) setTimeout(sample,4000); } }; requestAnimationFrame(f); };
+  setTimeout(sample,1500); })();
 rainInit(); S.scene='title'; render(); updBag();
 </script>
 </body>
