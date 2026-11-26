@@ -235,7 +235,7 @@ table.j td,table.j th{border-bottom:1px solid #b5a37b;padding:5px 2px;text-align
     <div id="loc"></div>
     <div style="display:flex">
       <button class="ib glass" id="hintBtn" title="Подсказка"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/><path d="M11 8v3l2 1.5"/></svg></button>
-      <button class="ib glass" id="sndBtn" title="Звук"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button>
+      <button class="ib glass" id="gfxBtn" title="Графика"><svg viewBox="0 0 24 24"><path d="M12 3l1.6 2.7 3.1-.6.6 3.1L20 9.8 18.6 12 20 14.2l-2.7 1.6-.6 3.1-3.1-.6L12 21l-1.6-2.7-3.1.6-.6-3.1L4 14.2 5.4 12 4 9.8l2.7-1.6.6-3.1 3.1.6z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="ib glass" id="sndBtn" title="Звук"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg></button>
     </div>
   </div>
 
@@ -263,6 +263,7 @@ table.j td,table.j th{border-bottom:1px solid #b5a37b;padding:5px 2px;text-align
     <div class="ttl">ПОСЛЕДНИЙ<br>РЕЙС</div>
     <p>Паром уходит один раз в день.<br>Дальше Светлого Яра он не ходит. Почти никогда.</p>
     <button class="btn" id="startBtn">Начать расследование</button>
+    <button class="btn g" id="gfxT" style="padding:10px;font-size:13px;max-width:220px">Графика: Авто</button>
     <div class="small">Со звуком и озвучкой · лучше в наушниках</div>
   </div>
 
@@ -368,11 +369,12 @@ function sizeCanvas(cv){ const r=$('#app').getBoundingClientRect(),dpr=LITE?1:Ma
 function rainInit(){
   const dpr=sizeCanvas(RN.cv); RN.ctx=RN.cv.getContext('2d'); RN.dpr=dpr;
   RN.drops=Array.from({length:LITE?70:140},()=>({x:Math.random(),y:Math.random(),l:rnd(10,24),v:rnd(.9,1.6),a:rnd(.08,.28)}));
-  if(LITE){ if(!RN.raf) rainLoop(); return; }
-  const g=$('#grain'); sizeCanvas(g); const gc=g.getContext('2d'),img=gc.createImageData(g.width,g.height);
-  for(let i=0;i<img.data.length;i+=4){ const v=Math.random()*255; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255; } gc.putImageData(img,0,0);
+  if(!LITE) grainInit();
   if(!RN.raf) rainLoop();
 }
+let grainDone=false;
+function grainInit(){ if(grainDone) return; grainDone=true; const g=$('#grain'); sizeCanvas(g); const gc=g.getContext('2d'),img=gc.createImageData(g.width,g.height);
+  for(let i=0;i<img.data.length;i+=4){ const v=Math.random()*255; img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=255; } gc.putImageData(img,0,0); }
 function rainLoop(){
   const c=RN.ctx,W=RN.cv.width,H=RN.cv.height;
   c.clearRect(0,0,W,H);
@@ -844,6 +846,8 @@ function combine(a,b){
   A.deny(); toast('Не соединяется');
 }
 
+$('#gfxBtn').onclick=cycleGfx;
+$('#gfxT').onclick=cycleGfx;
 $('#hintBtn').onclick=()=>{ A.click(); const d=$('#dots'); if(!d) return; d.parentNode.parentNode.classList.remove('showHints'); void d.offsetWidth; d.parentNode.parentNode.classList.add('showHints'); setTimeout(()=>$('#stage').classList.remove('showHints'),1700); };
 $('#sndBtn').onclick=()=>{ A.init(); A.setOn(!A.on); $('#sndBtn').classList.toggle('off',!A.on); toast(A.on?'Звук включён':'Звук выключен'); };
 
@@ -1339,12 +1343,22 @@ $('#mGear').onclick=()=>{ A.click(); openGears(); };
 $('#mRestart').onclick=()=>{ $('#menu').style.display='none'; A.stopAmbient(); S.scene='title'; render(); $('#stage').classList.remove('dim'); $('#title').style.display='flex'; };
 try{ const tg=window.Telegram&&Telegram.WebApp; if(tg){ tg.ready(); tg.expand(); tg.setHeaderColor&&tg.setHeaderColor('#05070c'); tg.setBackgroundColor&&tg.setBackgroundColor('#05070c'); tg.disableVerticalSwipes&&tg.disableVerticalSwipes(); } }catch(e){}
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&A.ctx&&A.ctx.state!=='running') A.ctx.resume(); });
-function setLite(){ if(LITE) return; LITE=true; document.documentElement.classList.add('lite'); RN.drops=RN.drops.slice(0,70); sizeCanvas(RN.cv); RN.dpr=1; }
-(function fpsWatch(){ if(LITE||/lite=0/.test(location.search)) return; let checks=0;
-  const sample=()=>{ let n=0; const t0=performance.now(); const f=()=>{ n++; if(performance.now()-t0<2000) requestAnimationFrame(f); else { const fps=n/((performance.now()-t0)/1000);
-      if(fps<42) setLite(); else if(++checks<6) setTimeout(sample,4000); } }; requestAnimationFrame(f); };
-  setTimeout(sample,1500); })();
-rainInit(); S.scene='title'; render(); updBag();
+function setLite(on){ LITE=!!on; document.documentElement.classList.toggle('lite',LITE);
+  RN.drops=Array.from({length:LITE?70:140},()=>({x:Math.random(),y:Math.random(),l:rnd(10,24),v:rnd(.9,1.6),a:rnd(.08,.28)}));
+  RN.dpr=sizeCanvas(RN.cv); if(!LITE) grainInit(); }
+let GFX='auto', fpsToken=0;
+try{ GFX=localStorage.getItem('rejs_gfx')||'auto'; }catch(e){}
+if(/lite=1/.test(location.search)) GFX='low'; if(/lite=0/.test(location.search)) GFX='high';
+const GFXN={auto:'Авто',high:'Высокая',low:'Низкая'};
+function fpsWatch(){ const tok=++fpsToken; let checks=0;
+  const sample=()=>{ if(tok!==fpsToken||GFX!=='auto') return; let n=0; const t0=performance.now(); const f=()=>{ n++; if(performance.now()-t0<2000) requestAnimationFrame(f); else { if(tok!==fpsToken||GFX!=='auto') return; const fps=n/((performance.now()-t0)/1000);
+      if(fps<42) setLite(true); else if(++checks<6) setTimeout(sample,4000); } }; requestAnimationFrame(f); };
+  setTimeout(sample,1500); }
+function applyGfx(mode,announce){ GFX=mode; try{ localStorage.setItem('rejs_gfx',mode); }catch(e){}
+  fpsToken++; if(mode==='low') setLite(true); else { setLite(false); if(mode==='auto') fpsWatch(); }
+  const t=$('#gfxT'); if(t) t.textContent='Графика: '+GFXN[mode]; if(announce) toast('Графика: '+GFXN[mode]+(mode==='auto'?' — подстроится под телефон':'')); }
+function cycleGfx(){ A.click&&A.click(); applyGfx({auto:'high',high:'low',low:'auto'}[GFX],true); }
+rainInit(); applyGfx(GFX,false); S.scene='title'; render(); updBag();
 </script>
 </body>
 </html>
