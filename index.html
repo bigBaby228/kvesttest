@@ -132,7 +132,7 @@ table.j td,table.j th{border-bottom:1px solid #b5a37b;padding:5px 2px;text-align
 @keyframes rip{to{transform:scale(5);opacity:0}}
 
 /* phone */
-#phone,#mg{position:absolute;inset:0;z-index:28;background:#03050acc;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#phone,#mg{position:absolute;inset:0;z-index:28;background:#03050acc;display:none;flex-direction:column;align-items:center;justify-content:safe center;padding:16px;overflow-y:auto;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .pbox{border-radius:26px;padding:18px;width:100%;max-width:350px;text-align:center}
 .disp{font:600 28px "Courier New",monospace;letter-spacing:.14em;background:#05070bcc;border:1px solid #ffffff14;border-radius:12px;padding:10px;margin-bottom:10px;min-height:54px;color:#ffd9a0;text-shadow:0 0 12px #ffbf6b66}
 .dial{position:relative;width:256px;height:256px;margin:4px auto 12px;border-radius:50%;background:radial-gradient(circle,#1b1d22 26%,#0c0d10 27%,#14161a 60%,#262930 61%,#121317 70%);box-shadow:0 10px 30px #000,inset 0 2px 0 #ffffff10}
@@ -928,12 +928,12 @@ function openMirrors(onDone){
       g+=`<g class="m" data-k="${k}" style="cursor:pointer" transform="translate(${cx(x)},${cy(y)})"><circle r="21" fill="#0006"/><g transform="rotate(${ROT[o]})"><ellipse rx="19" ry="7" fill="url(#brass)"/><ellipse rx="15.5" ry="4.2" fill="#c9d6ea"/><ellipse rx="15.5" ry="4.2" fill="#fff" opacity=".25"/></g><circle r="22" fill="transparent"/></g>`; });
     g+='</svg>'; $('#mgSvg').innerHTML=g;
     $('#mgSvg').querySelectorAll('.m').forEach(el=>el.onclick=()=>{ if(won) return; const k=el.dataset.k; mir[k]=ORD[(ORD.indexOf(mir[k])+1)%4]; A.creak(); draw(); });
-    if(hit&&!won){ won=true; A.tone(110,2.6,'sine',.14); A.tone(165,2.6,'sine',.07); $('#mgTip').innerHTML='<span style="color:#e8f0ff">Знак волны вспыхивает серебром. Крышка алтаря отъезжает.</span>'; $('#mgDone').style.display='block'; }
+    if(hit&&!won){ won=true; A.tone(110,2.6,'sine',.14); A.tone(165,2.6,'sine',.07); window._mgAuto&&window._mgAuto(); $('#mgTip').innerHTML='<span style="color:#e8f0ff">Знак волны вспыхивает серебром. Крышка алтаря отъезжает.</span>'; $('#mgDone').style.display='block'; }
   }
   $('#mg').innerHTML=`<div class="mgHead"><b>Часовня · зеркала</b><button class="ib glass" id="mgX"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
    <div class="mgBody"><div id="mgSvg"></div></div><div class="mgTip" id="mgTip">Каждое касание поворачивает зеркало на 45°. Ребром к лучу зеркало его гасит. Доведи лунный свет до знака волны на алтаре — свечи луч не пропускают, а не все зеркала нужны.</div>
    <button class="btn" id="mgDone" style="display:none">Дальше</button>`;
-  $('#mg').style.display='flex'; const close=()=>{ $('#mg').style.display='none'; if(onDone) onDone(won); }; $('#mgX').onclick=close; $('#mgDone').onclick=close; draw();
+  $('#mg').style.display='flex'; let closed=false; const close=()=>{ if(closed) return; closed=true; $('#mg').style.display='none'; if(onDone) onDone(won); }; $('#mgX').onclick=close; $('#mgDone').onclick=close; window._mgAuto=()=>setTimeout(close,1800); draw();
 }
 
 /* ===================== MINIGAME: GEARS ===================== */
@@ -982,7 +982,7 @@ function openGears(onDone,opts={}){
     tray.sort((a,b)=>a.r-b.r); drawTray(); draw(); }
   function run(){ if(spin||won) return; const res=check(), n=res.ok?last+1:res.at+1, w=[90]; for(let i=1;i<=last;i++) w[i]=-w[i-1]*(radius(i-1)||1)/(radius(i)||1); const t0=performance.now();
     if(!res.ok){ A.creak(); $('#mgTip').textContent=res.why==='empty'?'Цепь обрывается: на одной из осей нет шестерни.':res.why==='overlap'?'Шестерни наезжают друг на друга — механизм заклинило. Нужна чуть меньше.':res.why==='cross'?'Шестерня задевает не соседнюю, а дальнюю — механизм заклинило.':'Зубцы не касаются — вращение не передаётся. Нужна чуть больше.'; }
-    else { won=true; $('#mgTip').innerHTML='<span style="color:#ffd9a0">Вся цепь крутится — мотор чихает и заводится!</span>'; A.tone(55,1.5,'sawtooth',.05); setTimeout(()=>A.tone(70,2,'sawtooth',.045),600); $('#mgDone').style.display='block'; }
+    else { won=true; setTimeout(()=>{ if($('#mg').style.display!=='none') $('#mgDone').click(); },2600); $('#mgTip').innerHTML='<span style="color:#ffd9a0">Вся цепь крутится — мотор чихает и заводится!</span>'; A.tone(55,1.5,'sawtooth',.05); setTimeout(()=>A.tone(70,2,'sawtooth',.045),600); $('#mgDone').style.display='block'; }
     spin=true; const step=now=>{ const dt=(now-t0)/1000; for(let i=0;i<n;i++) ang[i]=w[i]*dt; if(!res.ok&&res.why!=='empty'&&res.why!=='gap') ang[n-1]+=Math.sin(now/25)*2; draw();
       if(!res.ok&&dt>1.6){ spin=null; return; } if(res.ok&&dt>2.2){ spin=null; loopWin(w,dt); return; } raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); }
   function loopWin(w,dt0){ const t0=performance.now()-dt0*1000; const step=now=>{ const dt=(now-t0)/1000; for(let i=0;i<=last;i++) ang[i]=w[i]*dt; draw(); if($('#mg').style.display!=='none') raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); }
@@ -990,7 +990,7 @@ function openGears(onDone,opts={}){
    <div class="mgBody"><div id="mgSvg"></div><div id="tray"></div></div>
    <div class="mgTip" id="mgTip">Четыре оси — четыре шестерни. Зубцы должны цепляться точно: чуть больше — заклинит, чуть меньше — не достанет. Выбери шестерню внизу и нажми на ось.</div>
    <div class="prow" style="width:100%;max-width:380px"><button class="btn" id="mgRun">Пуск</button></div><button class="btn" id="mgDone" style="display:none">Дальше</button>`;
-  $('#mg').style.display='flex'; const close=()=>{ cancelAnimationFrame(raf); $('#mg').style.display='none'; if(onDone) onDone(won); };
+  $('#mg').style.display='flex'; let closed=false; const close=()=>{ if(closed) return; closed=true; cancelAnimationFrame(raf); $('#mg').style.display='none'; if(onDone) onDone(won); };
   $('#mgX').onclick=close; $('#mgDone').onclick=close; $('#mgRun').onclick=()=>{ A.click(); run(); }; drawTray(); draw();
 }
 
@@ -1284,7 +1284,7 @@ function openMatch(onDone){
       +`<div class="mrow today"><span class="yr">Сегодня</span><span class="nm2">Нина Дрющенко</span><span class="slot2" style="border-style:solid;border-color:#ff8a6a44"></span></div>`;
     $('#mitems').querySelectorAll('.it').forEach(e=>e.onclick=()=>{ sel=e.dataset.k; A.click(); $('#mgTip').innerHTML=`<b style="color:#f3e3c8">${info[sel][0]}.</b> ${info[sel][1]}`; draw(); });
     $('#mrows').querySelectorAll('.mrow[data-i]').forEach(e=>e.onclick=()=>{ const i=+e.dataset.i; if(placed[i]||!sel) return;
-      if(rows[i][2]===sel){ placed[i]=sel; sel=null; A.pick(); $('#mgTip').textContent='Тихий щелчок.'; draw(); if(Object.keys(placed).length===4){ $('#mgTip').innerHTML='<span style="color:#ffd9a0">Все четыре вещи на своих местах.</span>'; $('#mgDone').style.display='block'; } }
+      if(rows[i][2]===sel){ placed[i]=sel; sel=null; A.pick(); $('#mgTip').textContent='Тихий щелчок.'; draw(); if(Object.keys(placed).length===4){ setTimeout(()=>{ if($('#mg').style.display!=='none') $('#mgDone').click(); },1500); $('#mgTip').innerHTML='<span style="color:#ffd9a0">Все четыре вещи на своих местах.</span>'; $('#mgDone').style.display='block'; } }
       else { A.deny(); e.classList.remove('bad'); void e.offsetWidth; e.classList.add('bad'); $('#mgTip').textContent='Вещь возвращается на место. Не его.'; } });
   };
   $('#mg').innerHTML=`<div class="mgHead"><b>Чьи это вещи</b><button class="ib glass" id="mgX"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
@@ -1293,7 +1293,7 @@ function openMatch(onDone){
    <button class="btn" id="mgDone" style="display:none">Дальше</button>`;
   $('#mg').style.display='flex'; draw();
   $('#mgX').onclick=()=>{ $('#mg').style.display='none'; if(onDone) onDone(false); };
-  $('#mgDone').onclick=()=>{ $('#mg').style.display='none'; if(onDone) onDone(true); };
+  let mdone=false; $('#mgDone').onclick=()=>{ if(mdone) return; mdone=true; $('#mg').style.display='none'; if(onDone) onDone(true); };
 }
 
 /* ===================== ТЕСТОВАЯ НАВИГАЦИЯ ===================== */
